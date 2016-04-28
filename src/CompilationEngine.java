@@ -982,6 +982,7 @@ public class CompilationEngine {
 	}
 	
 	public void compileExpression() {
+<<<<<<< HEAD
 		return;
 	}
 	
@@ -994,6 +995,208 @@ public class CompilationEngine {
 	
 	public void compileTerm() {
 		return;
+=======
+		try {
+			fw.write("<expression>\n");
+			
+			compileTerm();
+			
+			// Get (op term)*
+			tokenizer.advance();
+			
+			while (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL) && JackTokenizer.opSet.contains(tokenizer.symbol())) {
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				compileTerm();
+				
+				tokenizer.advance();
+			}
+			
+			tokenizer.index--;
+			
+			fw.write("</expression>\n");
+
+			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void compileSubroutineCall() {
+		try {
+			// Get 'subroutineName' / 'className' / 'varName'
+			tokenizer.advance();
+			
+			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+				throw new IllegalArgumentException("Not an identifier");
+			}
+
+			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			
+			// Get '(' or '.'
+			tokenizer.advance();
+			
+			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				throw new IllegalArgumentException("Not a symbol");
+			}
+			if (tokenizer.symbol().equals("(")) {
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				compileExpressionList();
+				
+				// Get ')'
+				tokenizer.advance();
+
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+					throw new IllegalArgumentException("Not a symbol");
+				}
+				if (!tokenizer.symbol().equals(")")) {
+					throw new IllegalArgumentException("Expected ')'");
+				}
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+			}
+			else if (tokenizer.symbol().equals(".")) {
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				// Get 'subroutineName'
+				tokenizer.advance();
+				
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+					throw new IllegalArgumentException("Not an identifier");
+				}
+
+				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				
+				// Get '('
+				tokenizer.advance();
+
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+					throw new IllegalArgumentException("Not a symbol");
+				}
+				if (!tokenizer.symbol().equals("(")) {
+					throw new IllegalArgumentException("Expected '('");
+				}
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				compileExpressionList();
+				
+				// Get ')'
+				tokenizer.advance();
+
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+					throw new IllegalArgumentException("Not a symbol");
+				}
+				if (!tokenizer.symbol().equals(")")) {
+					throw new IllegalArgumentException("Expected ')'");
+				}
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+			} 
+			else {
+				throw new IllegalArgumentException("Expected '(' or '.'");
+			}
+			
+			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+
+	public void compileTerm() {
+		try {
+			fw.write("<term>\n");
+			
+			tokenizer.advance();
+
+			if (tokenizer.getType().equals(JackTokenizer.TokenType.INT_CONST)) {
+
+				fw.write("<integerConstant> " + tokenizer.intVal() + " </integerConstant>\n");
+
+			}
+			else if (tokenizer.getType().equals(JackTokenizer.TokenType.STRING_CONST)) {
+				fw.write("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>\n");
+			}
+			else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && 
+						(tokenizer.keyWord().equals(JackTokenizer.KeyWord.TRUE) || 
+							tokenizer.keyWord().equals(JackTokenizer.KeyWord.FALSE) ||
+							tokenizer.keyWord().equals(JackTokenizer.KeyWord.NULL) ||
+							tokenizer.keyWord().equals(JackTokenizer.KeyWord.THIS))) {
+
+				fw.write("<keywordConstant> " + tokenizer.keyWord() + " </keywordConstant>\n");
+			}
+			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+				// Could be varName | varName '[' expression ']' | subroutineCall
+				// Get '[' | '('
+				tokenizer.advance();
+
+				if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+					// varName '[' expression ']'  
+					if (tokenizer.symbol().equals("[")) {
+						tokenizer.index = tokenizer.index - 2;
+						
+						tokenizer.advance();
+						
+						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+						
+						tokenizer.advance();
+						
+						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+						
+						compileExpressionList();
+						
+						// Get ']'
+						tokenizer.advance();
+
+						if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+							throw new IllegalArgumentException("Not a symbol");
+						}
+						if (!tokenizer.symbol().equals("]")) {
+							throw new IllegalArgumentException("Expected ']'");
+						}
+
+						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+						
+					}
+					else if (tokenizer.symbol().equals("(")) {
+						tokenizer.index = tokenizer.index - 2;
+						
+						compileSubroutineCall();
+						
+					}
+					else {
+						tokenizer.index = tokenizer.index - 2;
+						
+						tokenizer.advance();
+						
+						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+					}
+				}
+				else {
+					tokenizer.index = tokenizer.index - 2;
+					
+					tokenizer.advance();
+					
+					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				}
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+>>>>>>> ec206f216251612746a062194036e362f7fdb1ea
 	}
 	
 	public void compileExpressionList() {

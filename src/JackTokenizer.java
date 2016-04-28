@@ -21,8 +21,13 @@ public class JackTokenizer {
 	
 	private FileReader reader;
 	private Scanner scan;
+<<<<<<< HEAD
 	private static final HashMap<String, KeyWord> keyWordMap = new HashMap<String, KeyWord>();
 	private static final HashSet<String> symbolSet = new HashSet<String>();
+=======
+	static final HashMap<String, KeyWord> keyWordMap = new HashMap<String, KeyWord>();
+	static final HashSet<String> opSet = new HashSet<String>();
+>>>>>>> ec206f216251612746a062194036e362f7fdb1ea
 	private String token;
 	private TokenType type;
 	private ArrayList<String> tokens;
@@ -58,6 +63,7 @@ public class JackTokenizer {
         keyWordMap.put("null", 			KeyWord.NULL);
         keyWordMap.put("this", 			KeyWord.THIS); 
 
+<<<<<<< HEAD
         symbolSet.add("+");
         symbolSet.add("-");
         symbolSet.add("*");
@@ -67,6 +73,17 @@ public class JackTokenizer {
         symbolSet.add("<");
         symbolSet.add(">");
         symbolSet.add("=");
+=======
+        opSet.add("+");
+        opSet.add("-");
+        opSet.add("*");
+        opSet.add("/");
+        opSet.add("&");
+        opSet.add("|");
+        opSet.add("<");
+        opSet.add(">");
+        opSet.add("=");
+>>>>>>> ec206f216251612746a062194036e362f7fdb1ea
     }
 	
 	// CONSTRUCTOR--------------------------------------------------------------------------------------------------------------------------

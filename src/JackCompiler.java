@@ -1,7 +1,7 @@
 import java.io.File;
 import java.util.ArrayList;
 
-public class JackAnalyzer {
+public class JackCompiler {
 	// DATA MEMBERS------------------------------------------------------------------------------------- 
 	private File inputFile;
 	private File outputFile;
@@ -9,7 +9,7 @@ public class JackAnalyzer {
 	private String XMLDir;
 	
 	// CONSTRUCTOR-------------------------------------------------------------------------------------------
-	public JackAnalyzer(File file) {
+	public JackCompiler(File file) {
 		this.inputFile = file;
 	}
 	
@@ -90,7 +90,7 @@ public class JackAnalyzer {
 		
 		File file = new File(args[0]);
 		
-		JackAnalyzer jackAttack = new JackAnalyzer(file);
+		JackCompiler jackAttack = new JackCompiler(file);
 		jackAttack.run();
 		
 		return;

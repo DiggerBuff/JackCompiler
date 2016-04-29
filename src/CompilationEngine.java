@@ -4,10 +4,18 @@ import java.io.IOException;
 
 public class CompilationEngine {
 	private JackTokenizer tokenizer;
+	private SymbolTable symbolTable;
 	private FileWriter fw, fwT;
+	private String className;
+	
+	// To set for each symbol to add to the symbol table
+	private String name;
+	private String type;
+	private Symbol.Kind kind;
 	
 	public CompilationEngine(File inputFile, File outputFileT, File outputFile) {		
 		this.tokenizer = new JackTokenizer(inputFile);
+		this.symbolTable = new SymbolTable();
 		
 		try {
 			this.fw = new FileWriter(outputFile);
@@ -104,6 +112,11 @@ public class CompilationEngine {
 			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 			
 			
+			// NEW CODE*********************************************************************************************************
+			this.className = tokenizer.identifier();
+			symbolTable.classScope();
+			
+			
 			// Get '{'
 			tokenizer.advance();
 			
@@ -179,6 +192,14 @@ public class CompilationEngine {
 			
 			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 			
+			// NEW CODE -------------------------------------------------------------------------------------------
+			if (tokenizer.getToken().equals("static")) {
+				kind = Symbol.Kind.STATIC;
+			}
+			else {
+				kind = Symbol.Kind.FIELD;
+			}
+			
 			// Get type
 			tokenizer.advance();
 			
@@ -190,10 +211,16 @@ public class CompilationEngine {
 				}
 				else {
 					fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+					
+					// NEW CODE -------------------------------------------------------------------------------------------
+					type = tokenizer.getToken();
 				}
 			}
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				
+				// NEW CODE -------------------------------------------------------------------------------------------
+				type = tokenizer.getToken();
 			}
 			else {
 				throw new IllegalArgumentException("Expected a type");
@@ -207,6 +234,12 @@ public class CompilationEngine {
 			}
 			
 			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			
+			// NEW CODE -------------------------------------------------------------------------------------------
+			name = tokenizer.identifier();
+			symbolTable.define(name, type, kind);
+			fw.write(symbolTable.classMap.get(name).toString());
+			System.out.println("*************" + symbolTable.classMap.get(name).toString());
 			
 			
 			// Get (',' varName)*
@@ -229,6 +262,11 @@ public class CompilationEngine {
 				}
 				
 				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				
+				// NEW CODE -------------------------------------------------------------------------------------------
+				name = tokenizer.identifier();
+				symbolTable.define(name, type, kind);
+				fw.write(symbolTable.classMap.get(name).toString());
 				
 				tokenizer.advance();
 			}
@@ -326,6 +364,9 @@ public class CompilationEngine {
 			}
 			
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+			
+			// NEW CODE -------------------------------------------------------------------------------------------
+			symbolTable.startSubroutine();	
 
 			compileParameterList();
 
@@ -344,6 +385,9 @@ public class CompilationEngine {
 			compileSubroutineBody();
 
 			fw.write("</subroutineDec>\n");
+
+			// NEW CODE -------------------------------------------------------------------------------------------
+			symbolTable.classScope();
 
 			// Check for more classVarDec
 			compileSubroutine();
@@ -377,6 +421,9 @@ public class CompilationEngine {
 				}
 				else {
 					fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+					
+					// NEW CODE -------------------------------------------------------------------------------------------
+					type = tokenizer.getToken();
 				}
 			}
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
@@ -394,6 +441,11 @@ public class CompilationEngine {
 			}
 			
 			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			
+			// NEW CODE -------------------------------------------------------------------------------------------
+			name = tokenizer.getToken();
+			symbolTable.define(name, type, Symbol.Kind.ARG);
+			fw.write(symbolTable.subroutineMap.get(name).toString());
 			
 			
 			// Get (',' type varName)*
@@ -420,6 +472,9 @@ public class CompilationEngine {
 					}
 					else {
 						fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+						
+						// NEW CODE -------------------------------------------------------------------------------------------
+						type = tokenizer.getToken();
 					}
 				}
 				else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
@@ -429,6 +484,7 @@ public class CompilationEngine {
 					throw new IllegalArgumentException("Expected a type");
 				}
 				
+				// Get varName
 				tokenizer.advance();
 				
 				if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
@@ -436,6 +492,11 @@ public class CompilationEngine {
 				}
 				
 				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				
+				// NEW CODE -------------------------------------------------------------------------------------------
+				name = tokenizer.getToken();
+				symbolTable.define(name, type, Symbol.Kind.ARG);
+				fw.write(symbolTable.subroutineMap.get(name).toString());
 				
 				tokenizer.advance();
 			}
@@ -513,6 +574,9 @@ public class CompilationEngine {
 
 				fw.write("<varDec>\n");
 				
+				// NEW CODE -------------------------------------------------------------------------------------------
+				kind = Symbol.Kind.VAR;
+				
 				fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 				// Get type
@@ -534,6 +598,10 @@ public class CompilationEngine {
 				else {
 					throw new IllegalArgumentException("Expected a type");
 				}
+				
+				// NEW CODE -------------------------------------------------------------------------------------------
+				type = tokenizer.getToken();
+				
 
 				// Get varName
 				tokenizer.advance();
@@ -543,6 +611,11 @@ public class CompilationEngine {
 				}
 
 				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				
+				// NEW CODE -------------------------------------------------------------------------------------------
+				name = tokenizer.getToken();
+				symbolTable.define(name, type, kind);
+				fw.write(symbolTable.subroutineMap.get(name).toString());
 
 				// Get (',' varName)*
 				tokenizer.advance();
@@ -564,6 +637,11 @@ public class CompilationEngine {
 					}
 
 					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+					
+					// NEW CODE -------------------------------------------------------------------------------------------
+					name = tokenizer.getToken();
+					symbolTable.define(name, type, kind);
+					fw.write(symbolTable.subroutineMap.get(name).toString());
 
 					tokenizer.advance();
 				}
@@ -704,6 +782,20 @@ public class CompilationEngine {
 			}
 
 			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			
+			// NEW CODE -------------------------------------------------------------------------------------------
+			name = tokenizer.getToken();
+			// If the variable exists in the subroutine scope
+			if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
+				fw.write("SETTING SUBR : " + symbolTable.subroutineMap.get(name).toString());
+			}
+			else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
+				fw.write("SETTING CLASS : " + symbolTable.classMap.get(name).toString());
+			}
+			else {
+				throw new IllegalArgumentException("Identifier could not be found");
+			}
+			
 
 			// Get ('[' expression ']') or '='
 			tokenizer.advance();
@@ -1079,6 +1171,19 @@ public class CompilationEngine {
 
 			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 			
+			// NEW CODE -------------------------------------------------------------------------------------------
+			name = tokenizer.getToken();
+			// If the variable exists in the subroutine scope
+			if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
+				fw.write("Compile subroutine (subr) : " + symbolTable.subroutineMap.get(name).toString());
+			}
+			else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
+				fw.write("Compile subroutine (class) : " + symbolTable.classMap.get(name).toString());
+			}
+			else {
+				fw.write("Compile subroutine (unknown) : " + name);
+			}
+			
 			// Get '(' or '.'
 			tokenizer.advance();
 			
@@ -1199,6 +1304,19 @@ public class CompilationEngine {
 						
 						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 						
+						// NEW CODE -------------------------------------------------------------------------------------------
+						name = tokenizer.getToken();
+						// If the variable exists in the subroutine scope
+						if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
+							fw.write("Compile term (subr) : " + symbolTable.subroutineMap.get(name).toString());
+						}
+						else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
+							fw.write("Compile term (class) : " + symbolTable.classMap.get(name).toString());
+						}
+						else {
+							throw new IllegalArgumentException("CompileTerm : Identifier could not be found");
+						}
+						
 						// Get '['
 						tokenizer.advance();
 						
@@ -1219,7 +1337,7 @@ public class CompilationEngine {
 						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 						
 					}
-					// subroutineCall == subroutineName '('
+					// subroutineCall == subroutineName '(' || (className | varName) '.'
 					else if (tokenizer.symbol().equals("(") || tokenizer.symbol().equals(".")) {
 						tokenizer.index = tokenizer.index - 2;
 						System.out.println("Should be identifier for subroutine : " + tokenizer.getToken());
@@ -1235,6 +1353,19 @@ public class CompilationEngine {
 						System.out.println("Identifier then symbol[^[(] : " + tokenizer.getToken());
 						
 						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+						
+						// NEW CODE -------------------------------------------------------------------------------------------
+						name = tokenizer.getToken();
+						// If the variable exists in the subroutine scope
+						if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
+							fw.write("Compile term (subr) : " + symbolTable.subroutineMap.get(name).toString());
+						}
+						else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
+							fw.write("Compile term (class) : " + symbolTable.classMap.get(name).toString());
+						}
+						else {
+							throw new IllegalArgumentException("CompileTerm (varName) : Identifier could not be found");
+						}
 					}
 				}
 				// varName if followed by non-symbol
@@ -1245,6 +1376,19 @@ public class CompilationEngine {
 					System.out.println("Identifier then nonSymbol : " + tokenizer.getToken());
 					
 					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+					
+					// NEW CODE -------------------------------------------------------------------------------------------
+					name = tokenizer.getToken();
+					// If the variable exists in the subroutine scope
+					if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
+						fw.write("Compile term (subr) : " + symbolTable.subroutineMap.get(name).toString());
+					}
+					else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
+						fw.write("Compile term (class) : " + symbolTable.classMap.get(name).toString());
+					}
+					else {
+						throw new IllegalArgumentException("CompileTerm (varName) : Identifier could not be found");
+					}
 				}
 			}
 			// Get '(' expression ')' | unaryOp term

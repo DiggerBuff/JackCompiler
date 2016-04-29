@@ -36,4 +36,9 @@ public class Symbol {
 		this.kind = kind;
 	}
 
+	@Override
+	public String toString() {
+		return "Symbol [type=" + type + ", kind=" + kind + ", index=" + index + "]";
+	}
+
 }

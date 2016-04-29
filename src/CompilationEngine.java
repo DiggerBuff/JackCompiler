@@ -636,18 +636,7 @@ public class CompilationEngine {
 
 			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
-			//compileSubroutineCall();
-			// THIS IS A PLACEHOLDER TO DEAL WITH EXPRESSION UNTIL I IMPLEMENT IT
-			tokenizer.advance();
-			fw.write("<SUBROUTINECALL> " + tokenizer.getToken() + " </SUBROUTINECALL>\n");
-			tokenizer.advance();
-			fw.write("<SUBROUTINECALL> " + tokenizer.getToken() + " </SUBROUTINECALL>\n");
-			tokenizer.advance();
-			fw.write("<SUBROUTINECALL> " + tokenizer.getToken() + " </SUBROUTINECALL>\n");
-			tokenizer.advance();
-			fw.write("<SUBROUTINECALL> " + tokenizer.getToken() + " </SUBROUTINECALL>\n");
-			tokenizer.advance();
-			fw.write("<SUBROUTINECALL> " + tokenizer.getToken() + " </SUBROUTINECALL>\n");
+			compileSubroutineCall();
 
 			// Get ';'
 			tokenizer.advance();
@@ -723,15 +712,7 @@ public class CompilationEngine {
 
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 			
-			//compileExpression();
-			// THIS IS A PLACEHOLDER TO DEAL WITH EXPRESSION UNTIL I IMPLEMENT IT
-			tokenizer.advance();
-
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				throw new IllegalArgumentException("Not an identifier");
-			}
-
-			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			compileExpression();
 
 			// Get ';'
 			tokenizer.advance();
@@ -835,11 +816,27 @@ public class CompilationEngine {
 
 			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
+			// Check if ';' or expression
+			tokenizer.advance();
+			
+			if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				if (tokenizer.symbol().equals(";")) {
+					
+					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+					
+					fw.write("</returnStatement>\n");
+					
+					return;
+				}
+			}
+			
+			tokenizer.index--;
+			
 			compileExpression();
 
 			// Get ';'
 			tokenizer.advance();
-			
+
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -850,7 +847,9 @@ public class CompilationEngine {
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 			
 			fw.write("</returnStatement>\n");
+			
 			return;
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -982,20 +981,6 @@ public class CompilationEngine {
 	}
 	
 	public void compileExpression() {
-<<<<<<< HEAD
-		return;
-	}
-	
-	
-	private void compileSubroutineCall() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	
-	public void compileTerm() {
-		return;
-=======
 		try {
 			fw.write("<expression>\n");
 			
@@ -1109,21 +1094,23 @@ public class CompilationEngine {
 		
 	}
 
-
 	public void compileTerm() {
 		try {
 			fw.write("<term>\n");
 			
 			tokenizer.advance();
-
+			
+			// integerConstant
 			if (tokenizer.getType().equals(JackTokenizer.TokenType.INT_CONST)) {
-
 				fw.write("<integerConstant> " + tokenizer.intVal() + " </integerConstant>\n");
-
 			}
+			
+			// stringConstant
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.STRING_CONST)) {
 				fw.write("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>\n");
 			}
+			
+			// keywordConstant
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && 
 						(tokenizer.keyWord().equals(JackTokenizer.KeyWord.TRUE) || 
 							tokenizer.keyWord().equals(JackTokenizer.KeyWord.FALSE) ||
@@ -1132,25 +1119,32 @@ public class CompilationEngine {
 
 				fw.write("<keywordConstant> " + tokenizer.keyWord() + " </keywordConstant>\n");
 			}
+			
+			// Could be varName | varName '[' expression ']' | subroutineCall
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				// Could be varName | varName '[' expression ']' | subroutineCall
-				// Get '[' | '('
+				
+				// Check for following '[' | '('
 				tokenizer.advance();
+				System.out.println("Initial else if entered : " + tokenizer.getToken() + " should be ;");
 
 				if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 					// varName '[' expression ']'  
 					if (tokenizer.symbol().equals("[")) {
+						
+						// Backtrack back to before varName
 						tokenizer.index = tokenizer.index - 2;
 						
 						tokenizer.advance();
+						System.out.println("Entered varName '[' expression ']' : " + tokenizer.getToken());
 						
 						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 						
+						// Get '['
 						tokenizer.advance();
 						
 						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 						
-						compileExpressionList();
+						compileExpression();
 						
 						// Get ']'
 						tokenizer.advance();
@@ -1165,38 +1159,78 @@ public class CompilationEngine {
 						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 						
 					}
+					// subroutineCall == subroutineName '('
 					else if (tokenizer.symbol().equals("(")) {
 						tokenizer.index = tokenizer.index - 2;
+						System.out.println("Should be identifier for subroutine : " + tokenizer.getToken());
 						
 						compileSubroutineCall();
 						
 					}
+					// varName if followed by symbol
 					else {
 						tokenizer.index = tokenizer.index - 2;
 						
 						tokenizer.advance();
+						System.out.println("Identifier then symbol[^[(] : " + tokenizer.getToken());
 						
 						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 					}
 				}
+				// varName if followed by non-symbol
 				else {
 					tokenizer.index = tokenizer.index - 2;
 					
 					tokenizer.advance();
+					System.out.println("Identifier then nonSymbol : " + tokenizer.getToken());
 					
 					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 				}
-
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 			}
+			// Get '(' expression ')' | unaryOp term
+			else if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				// '(' expression ')' 
+				if (tokenizer.symbol().equals("(")) {
+					System.out.println("'(' expression ')' : " + tokenizer.getToken());
+					// Get '('
+					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+					
+					compileExpression();
+					
+					// Get ')'
+					tokenizer.advance();
+
+					if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+						throw new IllegalArgumentException("Not a symbol");
+					}
+					if (!tokenizer.symbol().equals(")")) {
+						throw new IllegalArgumentException("Expected ')'");
+					}
+
+					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				}
+				// unaryOp term
+				else {
+					System.out.println("unaryOp term : " + tokenizer.getToken());
+					if (!tokenizer.symbol().equals("-") && !tokenizer.symbol().equals("~")) {
+						throw new IllegalArgumentException("Expected '-' or '~'");
+					}
+
+					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+					
+					compileTerm();
+				}
+			}
+			else {
+				throw new IllegalArgumentException("Expected a term");
+			}
+			
+			fw.write("</term>\n");
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
->>>>>>> ec206f216251612746a062194036e362f7fdb1ea
 	}
 	
 	public void compileExpressionList() {

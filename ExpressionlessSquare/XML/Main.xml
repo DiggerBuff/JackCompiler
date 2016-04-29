@@ -22,25 +22,29 @@
 <keyword> let </keyword>
 <identifier> game </identifier>
 <symbol> = </symbol>
+<expression>
+<term>
 <identifier> game </identifier>
+</term>
+</expression>
 <symbol> ; </symbol>
 </letStatement>
 <doStatement>
 <keyword> do </keyword>
-<SUBROUTINECALL> game </SUBROUTINECALL>
-<SUBROUTINECALL> . </SUBROUTINECALL>
-<SUBROUTINECALL> run </SUBROUTINECALL>
-<SUBROUTINECALL> ( </SUBROUTINECALL>
-<SUBROUTINECALL> ) </SUBROUTINECALL>
+<identifier> game </identifier>
+<symbol> . </symbol>
+<identifier> run </identifier>
+<symbol> ( </symbol>
+<symbol> ) </symbol>
 <symbol> ; </symbol>
 </doStatement>
 <doStatement>
 <keyword> do </keyword>
-<SUBROUTINECALL> game </SUBROUTINECALL>
-<SUBROUTINECALL> . </SUBROUTINECALL>
-<SUBROUTINECALL> dispose </SUBROUTINECALL>
-<SUBROUTINECALL> ( </SUBROUTINECALL>
-<SUBROUTINECALL> ) </SUBROUTINECALL>
+<identifier> game </identifier>
+<symbol> . </symbol>
+<identifier> dispose </identifier>
+<symbol> ( </symbol>
+<symbol> ) </symbol>
 <symbol> ; </symbol>
 </doStatement>
 <returnStatement>

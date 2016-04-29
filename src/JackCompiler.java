@@ -5,8 +5,7 @@ public class JackCompiler {
 	// DATA MEMBERS------------------------------------------------------------------------------------- 
 	private File inputFile;
 	private File outputFile;
-	private File outputFileT;
-	private String XMLDir;
+	private String VMDir;
 	
 	// CONSTRUCTOR-------------------------------------------------------------------------------------------
 	public JackCompiler(File file) {
@@ -15,14 +14,14 @@ public class JackCompiler {
 	
 	// METHODS-------------------------------------------------------------------------------------------
 	public void run() {
-		createXMLDirectory();
+		createVMDirectory();
 		
 		if (inputFile.isFile()) {
 			if(inputFile.getAbsolutePath().endsWith(".jack")) {
 
-				setOutputFiles(inputFile);
+				setOutputFile(inputFile);
 				
-				CompilationEngine ce = new CompilationEngine(inputFile, outputFileT, outputFile);
+				CompilationEngine ce = new CompilationEngine(inputFile, outputFile);
 				System.out.println("Compiling : " + inputFile.getName());
 				ce.compileClass();
 				System.out.println("Finished Compiling : " + inputFile.getName());
@@ -33,9 +32,9 @@ public class JackCompiler {
 			jackFiles = getJackFiles(inputFile);
 
 			for (File f : jackFiles) {
-				setOutputFiles(f);
+				setOutputFile(f);
 
-				CompilationEngine ce = new CompilationEngine(f, outputFileT, outputFile);
+				CompilationEngine ce = new CompilationEngine(f, outputFile);
 				System.out.println("Compiling : " + f.getName());
 				ce.compileClass();
 				System.out.println("Finished Compiling : " + f.getName());
@@ -46,17 +45,17 @@ public class JackCompiler {
 		}
 	}
 	
-	public void createXMLDirectory() {
+	public void createVMDirectory() {
 		if (inputFile.isFile()) {
-			XMLDir = (inputFile.getParentFile()).getAbsolutePath() + "\\XML";
+			VMDir = (inputFile.getParentFile()).getAbsolutePath() + "\\VM";
 		}
 		else if (inputFile.isDirectory()) {
-			XMLDir = inputFile.getAbsolutePath() + "\\XML";
+			VMDir = inputFile.getAbsolutePath() + "\\VM";
 		}
 		else {
 			throw new IllegalArgumentException("need a .jack file or directory");
 		}
-		File dir = new File(XMLDir);
+		File dir = new File(VMDir);
 		dir.mkdirs();
 		return;
 	}
@@ -76,9 +75,8 @@ public class JackCompiler {
 		return jackFiles;
 	}
 
-	public void setOutputFiles(File inputFile) {
-		this.outputFile = new File(XMLDir + "\\" + inputFile.getName().substring(0, inputFile.getName().lastIndexOf(".")) +  ".xml");
-		this.outputFileT = new File(XMLDir + "\\" + inputFile.getName().substring(0, inputFile.getName().lastIndexOf(".")) +  "T.xml");
+	public void setOutputFile(File inputFile) {
+		this.outputFile = new File(VMDir + "\\" + inputFile.getName().substring(0, inputFile.getName().lastIndexOf(".")) +  ".vm");
 		return;
 	}
 	

@@ -6,6 +6,7 @@ import java.util.HashSet;
 public class CompilationEngine {
 	private JackTokenizer tokenizer;
 	private FileWriter fw, fwT;
+	private boolean statementsEntered;
 	
 	public CompilationEngine(File inputFile, File outputFileT, File outputFile) {		
 		this.tokenizer = new JackTokenizer(inputFile);
@@ -468,14 +469,14 @@ public class CompilationEngine {
 
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 			
+			//Check multiple varDec
+			
 			compileVarDec();
 			
 			//compile statements
-			fw.write("<statements>\n");
-			
+
 			compileStatements();
-			
-			fw.write("</statements>\n");
+
 
 			// Get '}'
 			tokenizer.advance();
@@ -510,50 +511,33 @@ public class CompilationEngine {
 				return;
 			}
 
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+			while(tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && tokenizer.keyWord().equals(JackTokenizer.KeyWord.VAR)) {
 
-			// Get type
-			tokenizer.advance();
-			
-			if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-				if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.INT) && 
-						!tokenizer.keyWord().equals(JackTokenizer.KeyWord.CHAR) &&
-						!tokenizer.keyWord().equals(JackTokenizer.KeyWord.BOOLEAN)) {
-					throw new IllegalArgumentException("Expected an int, char, or boolean");
+				fw.write("<varDec>\n");
+				
+				fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+
+				// Get type
+				tokenizer.advance();
+
+				if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
+					if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.INT) && 
+							!tokenizer.keyWord().equals(JackTokenizer.KeyWord.CHAR) &&
+							!tokenizer.keyWord().equals(JackTokenizer.KeyWord.BOOLEAN)) {
+						throw new IllegalArgumentException("Expected an int, char, or boolean");
+					}
+					else {
+						fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+					}
+				}
+				else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 				}
 				else {
-					fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-				}
-			}
-			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-			}
-			else {
-				throw new IllegalArgumentException("Expected a type");
-			}
-			
-			// Get varName
-			tokenizer.advance();
-
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				throw new IllegalArgumentException("Not an identifier");
-			}
-
-			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-
-			// Get (',' varName)*
-			tokenizer.advance();
-
-			while (tokenizer.getToken().equals(",")) {
-				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-					throw new IllegalArgumentException("Not a symbol");
-				}
-				if (!tokenizer.symbol().equals(",")) {
-					throw new IllegalArgumentException("Expected ','");
+					throw new IllegalArgumentException("Expected a type");
 				}
 
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
+				// Get varName
 				tokenizer.advance();
 
 				if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
@@ -562,20 +546,47 @@ public class CompilationEngine {
 
 				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 
+				// Get (',' varName)*
 				tokenizer.advance();
-			}
 
-			// Get ';'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals(";")) {
-				throw new IllegalArgumentException("Expected ';'");
-			}
+				while (tokenizer.getToken().equals(",")) {
+					if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+						throw new IllegalArgumentException("Not a symbol");
+					}
+					if (!tokenizer.symbol().equals(",")) {
+						throw new IllegalArgumentException("Expected ','");
+					}
 
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+
+					tokenizer.advance();
+
+					if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+						throw new IllegalArgumentException("Not an identifier");
+					}
+
+					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+
+					tokenizer.advance();
+				}
+
+				// Get ';'
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+					throw new IllegalArgumentException("Not a symbol");
+				}
+				if (!tokenizer.symbol().equals(";")) {
+					throw new IllegalArgumentException("Expected ';'");
+				}
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+
+				tokenizer.advance();
+				
+				fw.write("</varDec>\n");
+			}
 			
-			fw.write("</varDec>\n");
+			tokenizer.index--;
+			
 			return;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -584,42 +595,56 @@ public class CompilationEngine {
 	}
 	
 	public void compileStatements() {
+		try {
+			// Determine if statement, or }
+			tokenizer.advance();
 
-		// Determine if statement, or }
-		tokenizer.advance();
+			if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				tokenizer.index--;
+				return;
+			}
+			
+			fw.write("<statements>\n");
 
-		if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			while (!tokenizer.getToken().equals("}")) {
+
+				// Get ('constructor' | 'function' | 'method')
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
+					throw new IllegalArgumentException("Not a keyword for a statement");
+				}
+				if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.LET)) {
+					compileLet();
+				}
+				else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.IF)) {
+					compileIf();
+				}
+				else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.WHILE)) {
+					compileWhile();
+				}
+				else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.DO)) {
+					compileDo();
+				}
+				else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.RETURN)) {
+					compileReturn();
+				}
+				else {
+					System.out.println(tokenizer.getToken());
+					throw new IllegalArgumentException("Expected a statement");
+				}
+
+				tokenizer.advance();
+
+			}
+			
 			tokenizer.index--;
+			
+			fw.write("</statements>\n");
+
 			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-
-		// Get ('constructor' | 'function' | 'method')
-		if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-			throw new IllegalArgumentException("Not a keyword for a statement");
-		}
-		if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.LET)) {
-			compileLet();
-		}
-		else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.IF)) {
-			compileIf();
-		}
-		else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.WHILE)) {
-			compileWhile();
-		}
-		else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.DO)) {
-			compileDo();
-		}
-		else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.RETURN)) {
-			compileReturn();
-		}
-		else {
-			throw new IllegalArgumentException("Expected a statement");
-		}
-
-		// Check for more statements
-		compileStatements();
-
-		return;
 	}
 
 	public void compileDo() {
@@ -674,6 +699,7 @@ public class CompilationEngine {
 
 			// Get varName
 			tokenizer.advance();
+			System.out.println(" let varname : " + tokenizer.getToken());
 
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 				throw new IllegalArgumentException("Not an identifier");
@@ -688,9 +714,13 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Not a symbol");
 			}
 			if (tokenizer.getToken().equals("[")) {
+				System.out.println("'[' expression ']' happened");
 				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 				
 				compileExpression();
+				
+				// Get ']'
+				tokenizer.advance();
 				
 				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 					throw new IllegalArgumentException("Not a symbol");
@@ -700,6 +730,8 @@ public class CompilationEngine {
 				}
 
 				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				tokenizer.advance();
 			}
 
 			// Get '='
@@ -707,6 +739,7 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Not a symbol");
 			}
 			if (!tokenizer.symbol().equals("=")) {
+				System.out.println(tokenizer.getToken());
 				throw new IllegalArgumentException("Expected '='");
 			}
 
@@ -721,6 +754,7 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Not a symbol");
 			}
 			if (!tokenizer.symbol().equals(";")) {
+				System.out.println(tokenizer.getToken());
 				throw new IllegalArgumentException("Expected ';'");
 			}
 
@@ -749,6 +783,8 @@ public class CompilationEngine {
 			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 			// Get '('
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -759,10 +795,10 @@ public class CompilationEngine {
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 			
 			compileExpression();
-			
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 			// Get ')'
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -773,6 +809,8 @@ public class CompilationEngine {
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 
 			// Get '{'
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -785,6 +823,8 @@ public class CompilationEngine {
 			compileStatements();
 
 			// Get '}'
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -795,7 +835,9 @@ public class CompilationEngine {
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 			
 			fw.write("</whileStatement>\n");
+			
 			return;
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -872,7 +914,10 @@ public class CompilationEngine {
 			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 			// Get '('
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				System.out.println(tokenizer.getToken());
 				throw new IllegalArgumentException("Not a symbol");
 			}
 			if (!tokenizer.symbol().equals("(")) {
@@ -882,10 +927,10 @@ public class CompilationEngine {
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 			
 			compileExpression();
-			
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 			// Get ')'
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -896,6 +941,8 @@ public class CompilationEngine {
 			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 
 			// Get '{'
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -908,6 +955,8 @@ public class CompilationEngine {
 			compileStatements();
 
 			// Get '}'
+			tokenizer.advance();
+			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
@@ -990,8 +1039,20 @@ public class CompilationEngine {
 			tokenizer.advance();
 			
 			while (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL) && JackTokenizer.opSet.contains(tokenizer.symbol())) {
-
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				String text = tokenizer.symbol();
+				
+				if (text.equals("<")) {
+					text = "&lt;";
+				}
+				else if (text.equals(">")) {
+					text = "&gt;";
+				}
+				else if (text.equals("&")) {
+					text = "&amp;";
+				}
+				
+				fw.write("<symbol> " + text + " </symbol>\n");
 				
 				compileTerm();
 				
@@ -1099,6 +1160,7 @@ public class CompilationEngine {
 			fw.write("<term>\n");
 			
 			tokenizer.advance();
+			System.out.println("Compile term called on : " + tokenizer.getToken());
 			
 			// integerConstant
 			if (tokenizer.getType().equals(JackTokenizer.TokenType.INT_CONST)) {
@@ -1117,7 +1179,7 @@ public class CompilationEngine {
 							tokenizer.keyWord().equals(JackTokenizer.KeyWord.NULL) ||
 							tokenizer.keyWord().equals(JackTokenizer.KeyWord.THIS))) {
 
-				fw.write("<keywordConstant> " + tokenizer.keyWord() + " </keywordConstant>\n");
+				fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 			}
 			
 			// Could be varName | varName '[' expression ']' | subroutineCall
@@ -1160,7 +1222,7 @@ public class CompilationEngine {
 						
 					}
 					// subroutineCall == subroutineName '('
-					else if (tokenizer.symbol().equals("(")) {
+					else if (tokenizer.symbol().equals("(") || tokenizer.symbol().equals(".")) {
 						tokenizer.index = tokenizer.index - 2;
 						System.out.println("Should be identifier for subroutine : " + tokenizer.getToken());
 						
@@ -1213,6 +1275,11 @@ public class CompilationEngine {
 				else {
 					System.out.println("unaryOp term : " + tokenizer.getToken());
 					if (!tokenizer.symbol().equals("-") && !tokenizer.symbol().equals("~")) {
+						tokenizer.index--;
+						tokenizer.index--;
+						tokenizer.advance();
+						System.out.println("Previous token : " + tokenizer.getToken());
+						
 						throw new IllegalArgumentException("Expected '-' or '~'");
 					}
 
@@ -1234,6 +1301,46 @@ public class CompilationEngine {
 	}
 	
 	public void compileExpressionList() {
-		return;
+		try {
+			fw.write("<expressionList>\n");
+			
+			// Check for ')'
+			tokenizer.advance();
+			
+			if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				if (tokenizer.symbol().equals(")")) {
+					fw.write("</expressionList>\n");
+					tokenizer.index--;
+					System.out.println("Empty expression list");
+					return;
+				}
+			}
+			
+			tokenizer.index--;
+			
+			compileExpression();
+
+			// Get (',' expression)*
+			tokenizer.advance();
+
+			while (tokenizer.getToken().equals(",")) {
+
+				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+				
+				compileExpression();
+
+				tokenizer.advance();
+			}
+			
+			tokenizer.index--;
+			
+			fw.write("</expressionList>\n");
+			
+			return;
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }

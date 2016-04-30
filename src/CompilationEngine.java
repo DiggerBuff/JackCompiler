@@ -14,11 +14,13 @@ public class CompilationEngine {
 	private String name;
 	private String type;
 	private Symbol.Kind kind;
+	private int labelIndex;
 	
 	public CompilationEngine(File inputFile, File outputFile) {	
 		this.tokenizer = new JackTokenizer(inputFile);
 		this.symbolTable = new SymbolTable();
 		this.vm = new VMWriter(outputFile);
+		this.labelIndex = 0;
 
 		return;
 	}
@@ -236,6 +238,9 @@ public class CompilationEngine {
 			System.out.println(tokenizer.keyWord());
 			throw new IllegalArgumentException("Expected 'constructor', 'function', or 'method'");
 		}
+		
+		// THIS IS WHERE I STOPPED DEBUGGING = 211 of xctom
+		keyword = tokenizer.keyWord();
 		
 		//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 		

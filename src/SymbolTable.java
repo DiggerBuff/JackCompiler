@@ -7,7 +7,6 @@ public class SymbolTable {
 	private int varIndex;
 	public HashMap<String, Symbol> classMap;
 	public HashMap<String, Symbol> subroutineMap;
-	private boolean isClassScope;
 	
 	public SymbolTable() {
 		this.classMap = new HashMap<String, Symbol>();
@@ -16,7 +15,6 @@ public class SymbolTable {
 		this.fieldIndex = 0;
 		this.argIndex = 0;
 		this.varIndex = 0;
-		this.isClassScope = true;
 		return;
 	}
 
@@ -68,45 +66,39 @@ public class SymbolTable {
 	}
 	
 	public Symbol.Kind kindOf(String name) {
-		if (isClassScope) {
+		if (!(classMap.get(name) == null)) {
 			return classMap.get(name).getKind();
 		}
-		else {
+		else if (!(subroutineMap.get(name) == null)) {
 			return subroutineMap.get(name).getKind();
+		}
+		else {
+			System.out.println("kind of " + name + " is none");
+			return Symbol.Kind.NONE;
 		}
 	}
 	
-	public Symbol.Kind typeOf(String name) {
-		if (isClassScope) {
-			Symbol symbol = classMap.get(name);
-			if (symbol == null) {
-				return Symbol.Kind.NONE;
-			}
-			return symbol.getKind();
+	public String typeOf(String name) {
+		if (!(classMap.get(name) == null)) {
+			return classMap.get(name).getType();
+		}
+		else if (!(subroutineMap.get(name) == null)) {
+			return subroutineMap.get(name).getType();
 		}
 		else {
-			Symbol symbol = subroutineMap.get(name);
-			if (symbol == null) {
-				return Symbol.Kind.NONE;
-			}
-			return symbol.getKind();
+			return "";
 		}
 	}
 	
 	public int indexOf(String name) {
-		if (isClassScope) {
+		if (!(classMap.get(name) == null)) {
 			return classMap.get(name).getIndex();
 		}
-		else {
+		else if (!(subroutineMap.get(name) == null)) {
 			return subroutineMap.get(name).getIndex();
 		}
-	}
-	
-	public void classScope() {
-		this.isClassScope = true;
-	}
-	
-	public void subroutineScope() {
-		this.isClassScope = false;
+		else {
+			return -1;
+		}
 	}
 }

@@ -40,5 +40,4 @@ public class Symbol {
 	public String toString() {
 		return "Symbol [type=" + type + ", kind=" + kind + ", index=" + index + "]";
 	}
-
 }

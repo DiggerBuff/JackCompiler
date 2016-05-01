@@ -1,6 +1,4 @@
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 
 public class CompilationEngine {
 	private JackTokenizer tokenizer;
@@ -8,7 +6,7 @@ public class CompilationEngine {
 	private VMWriter vm;
 	private String className;
 	private String subrName;
-	private int nLocals;
+	private JackTokenizer.KeyWord keyword;
 	
 	// To set for each symbol to add to the symbol table
 	private String name;
@@ -36,19 +34,14 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("class");
 		}
 		
-		//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-		
-		
-		// Get classname
+		// Get class name
 		tokenizer.advance();
 		
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 			throw new IllegalArgumentException("Not an identifier");
 		}		
 		
-		// NEW CODE*********************************************************************************************************
 		this.className = tokenizer.identifier();
-		vm.write("Classname : " + className);
 		
 		// Get '{'
 		tokenizer.advance();
@@ -60,15 +53,11 @@ public class CompilationEngine {
 			System.out.println(tokenizer.getToken());
 			throw new IllegalArgumentException("Expected '{'");
 		}
-		
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
 
 		compileClassVarDec();
 		
 		compileSubroutine();
 		
-
 		// Get '}'
 		tokenizer.advance();
 
@@ -79,12 +68,7 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Expected '}'");
 		}
 
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
-		
 		// End and close
-		//fw.write("</class>\n");
-		
 		vm.close();
 
 		return;
@@ -107,9 +91,7 @@ public class CompilationEngine {
 				return;
 			}
 		}
-		
-		//fw.write("<classVarDec>\n");
-		
+
 		// Get ('static' | 'field')
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
 			throw new IllegalArgumentException("Not a keyword");
@@ -117,10 +99,7 @@ public class CompilationEngine {
 		if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.STATIC) && !tokenizer.keyWord().equals(JackTokenizer.KeyWord.FIELD)) {
 			throw new IllegalArgumentException("Expected 'static' or 'field'");
 		}
-		
-		//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-		
-		// NEW CODE -------------------------------------------------------------------------------------------
+
 		if (tokenizer.getToken().equals("static")) {
 			kind = Symbol.Kind.STATIC;
 		}
@@ -138,16 +117,10 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Expected an int, char, or boolean");
 			}
 			else {
-				//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-				
-				// NEW CODE -------------------------------------------------------------------------------------------
 				type = tokenizer.getToken();
 			}
 		}
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-			//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
 			type = tokenizer.getToken();
 		}
 		else {
@@ -160,13 +133,9 @@ public class CompilationEngine {
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 			throw new IllegalArgumentException("Not an identifier");
 		}
-		
-		//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-		
-		// NEW CODE -------------------------------------------------------------------------------------------
+
 		name = tokenizer.identifier();
-		symbolTable.define(name, type, kind);
-		vm.write(symbolTable.classMap.get(name).toString());			
+		symbolTable.define(name, type, kind);			
 		
 		// Get (',' varName)*
 		tokenizer.advance();
@@ -178,21 +147,15 @@ public class CompilationEngine {
 			if (!tokenizer.symbol().equals(",")) {
 				throw new IllegalArgumentException("Expected ','");
 			}
-			
-			//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
+
 			tokenizer.advance();
 			
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 				throw new IllegalArgumentException("Not an identifier");
 			}
-			
-			//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
+
 			name = tokenizer.identifier();
 			symbolTable.define(name, type, kind);
-			vm.write(symbolTable.classMap.get(name).toString());
 			
 			tokenizer.advance();
 		}
@@ -204,11 +167,7 @@ public class CompilationEngine {
 		if (!tokenizer.symbol().equals(";")) {
 			throw new IllegalArgumentException("Expected ';'");
 		}
-		
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
-		//fw.write("</classVarDec>\n");
-		
+
 		// Check for more classVarDec
 		compileClassVarDec();
 
@@ -223,9 +182,7 @@ public class CompilationEngine {
 			tokenizer.index--;
 			return;
 		}
-		
-		//fw.write("<subroutineDec>\n");
-		
+
 		// Get ('constructor' | 'function' | 'method')
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
 			throw new IllegalArgumentException("Not a keyword");
@@ -233,17 +190,18 @@ public class CompilationEngine {
 		if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.CONSTRUCTOR) && 
 				!tokenizer.keyWord().equals(JackTokenizer.KeyWord.FUNCTION) &&
 				!tokenizer.keyWord().equals(JackTokenizer.KeyWord.METHOD)) {
-			System.out.println(tokenizer.getToken());
-			System.out.println(tokenizer.getType());
-			System.out.println(tokenizer.keyWord());
 			throw new IllegalArgumentException("Expected 'constructor', 'function', or 'method'");
 		}
-		
-		// THIS IS WHERE I STOPPED DEBUGGING = 211 of xctom
+
 		keyword = tokenizer.keyWord();
-		
-		//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-		
+
+		symbolTable.startSubroutine();	
+
+		// for method this is the first argument
+        if (tokenizer.keyWord() == JackTokenizer.KeyWord.METHOD){
+            symbolTable.define("this", className, Symbol.Kind.ARG);
+        }
+
 		// Get ('void' | type)
 		tokenizer.advance();
 		
@@ -252,29 +210,25 @@ public class CompilationEngine {
 					!tokenizer.keyWord().equals(JackTokenizer.KeyWord.CHAR) &&
 					!tokenizer.keyWord().equals(JackTokenizer.KeyWord.BOOLEAN) &&
 					!tokenizer.keyWord().equals(JackTokenizer.KeyWord.VOID)) {
-				System.out.println(tokenizer.keyWord());
 				throw new IllegalArgumentException("Expected an int, char, boolean, or void");
 			}
 			else {
-				//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+				type = tokenizer.getToken();
 			}
 		}
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-			//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			type = tokenizer.getToken();
 		}
 		else {
 			throw new IllegalArgumentException("Expected a type");
 		}
 
-		
 		// Get subroutineName
 		tokenizer.advance();
 		
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 			throw new IllegalArgumentException("Not an identifier");
 		}
-		
-		//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
 		
 		this.subrName = tokenizer.identifier();
 		
@@ -288,11 +242,6 @@ public class CompilationEngine {
 		if (!tokenizer.symbol().equals("(")) {
 			throw new IllegalArgumentException("Expected '('");
 		}
-		
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
-		// NEW CODE -------------------------------------------------------------------------------------------
-		symbolTable.startSubroutine();	
 
 		compileParameterList();
 
@@ -306,14 +255,7 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Expected ')'");
 		}
 
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
 		compileSubroutineBody();
-
-		//fw.write("</subroutineDec>\n");
-
-		// NEW CODE -------------------------------------------------------------------------------------------
-		symbolTable.classScope();
 
 		// Check for more classVarDec
 		compileSubroutine();
@@ -327,7 +269,6 @@ public class CompilationEngine {
 		
 		if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 			tokenizer.index--;
-			//fw.write("</parameterList>\n");
 			return;
 		}
 		
@@ -339,14 +280,11 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Expected an int, char, or boolean");
 			}
 			else {
-				//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-				
-				// NEW CODE -------------------------------------------------------------------------------------------
 				type = tokenizer.getToken();
 			}
 		}
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-			//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			type = tokenizer.getToken();
 		}
 		else {
 			throw new IllegalArgumentException("Expected a type");
@@ -358,13 +296,9 @@ public class CompilationEngine {
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 			throw new IllegalArgumentException("Not an identifier");
 		}
-		
-		//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-		
-		// NEW CODE -------------------------------------------------------------------------------------------
+
 		name = tokenizer.getToken();
 		symbolTable.define(name, type, Symbol.Kind.ARG);
-		vm.write(symbolTable.subroutineMap.get(name).toString());
 		
 		
 		// Get (',' type varName)*
@@ -378,8 +312,6 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Expected ','");
 			}
 			
-			//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
 			// Get type
 			tokenizer.advance();
 			
@@ -390,14 +322,11 @@ public class CompilationEngine {
 					throw new IllegalArgumentException("Expected an int, char, or boolean");
 				}
 				else {
-					//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-					
-					// NEW CODE -------------------------------------------------------------------------------------------
 					type = tokenizer.getToken();
 				}
 			}
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				type = tokenizer.getToken();
 			}
 			else {
 				throw new IllegalArgumentException("Expected a type");
@@ -409,20 +338,14 @@ public class CompilationEngine {
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 				throw new IllegalArgumentException("Not an identifier");
 			}
-			
-			//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
+
 			name = tokenizer.getToken();
 			symbolTable.define(name, type, Symbol.Kind.ARG);
-			vm.write(symbolTable.subroutineMap.get(name).toString());
 			
 			tokenizer.advance();
 		}
 		
 		tokenizer.index--;
-		
-		//fw.write("</parameterList>\n");
 
 		return;
 	}
@@ -438,16 +361,14 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Expected '{'");
 		}
 
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
 		//Check multiple varDec
-		
 		compileVarDec();
 		
+		// Declare a new function
+		writeFunctionDec();
+		
 		//compile statements
-
 		compileStatements();
-
 
 		// Get '}'
 		tokenizer.advance();
@@ -459,13 +380,21 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Expected '{'");
 		}
 
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
-		//fw.write("</subroutineBody>\n");
-		
-		vm.writeFunction(className, subrName, nLocals);
-		
 		return;
+	}
+	
+	public void writeFunctionDec() {
+		vm.writeFunction(currentFunction(), symbolTable.varCount(Symbol.Kind.VAR));
+		
+		if (keyword.equals(JackTokenizer.KeyWord.CONSTRUCTOR)) {
+			vm.writePush(VMWriter.Segment.CONST, symbolTable.varCount(Symbol.Kind.FIELD));
+			vm.writeCall("Memory.alloc", 1);
+			vm.writePop(VMWriter.Segment.POINTER, 0);
+		}
+		else if (keyword.equals(JackTokenizer.KeyWord.METHOD)) {
+			vm.writePush(VMWriter.Segment.ARG, 0);
+			vm.writePop(VMWriter.Segment.POINTER, 0);
+		}	
 	}
 	
 	public void compileVarDec() {
@@ -480,16 +409,9 @@ public class CompilationEngine {
 			return;
 		}
 		
-		nLocals = 0;
-
 		while(tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && tokenizer.keyWord().equals(JackTokenizer.KeyWord.VAR)) {
 
-			//fw.write("<varDec>\n");
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
 			kind = Symbol.Kind.VAR;
-			
-			//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 			// Get type
 			tokenizer.advance();
@@ -501,19 +423,15 @@ public class CompilationEngine {
 					throw new IllegalArgumentException("Expected an int, char, or boolean");
 				}
 				else {
-					//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+					type = tokenizer.getToken();
 				}
 			}
 			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+				type = tokenizer.getToken();
 			}
 			else {
 				throw new IllegalArgumentException("Expected a type");
-			}
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
-			type = tokenizer.getToken();
-			
+			}			
 
 			// Get varName
 			tokenizer.advance();
@@ -522,14 +440,8 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Not an identifier");
 			}
 
-			//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
 			name = tokenizer.getToken();
 			symbolTable.define(name, type, kind);
-			vm.write(symbolTable.subroutineMap.get(name).toString());
-			
-			nLocals++;
 
 			// Get (',' varName)*
 			tokenizer.advance();
@@ -550,14 +462,8 @@ public class CompilationEngine {
 					throw new IllegalArgumentException("Not an identifier");
 				}
 
-				//fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-				
-				// NEW CODE -------------------------------------------------------------------------------------------
 				name = tokenizer.getToken();
 				symbolTable.define(name, type, kind);
-				vm.write(symbolTable.subroutineMap.get(name).toString());
-				
-				nLocals++;
 
 				tokenizer.advance();
 			}
@@ -570,11 +476,7 @@ public class CompilationEngine {
 				throw new IllegalArgumentException("Expected ';'");
 			}
 
-			//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
 			tokenizer.advance();
-			
-			//fw.write("</varDec>\n");
 		}
 		
 		tokenizer.index--;
@@ -590,66 +492,42 @@ public class CompilationEngine {
 			tokenizer.index--;
 			return;
 		}
-		
-		//fw.write("<statements>\n");
-		
-		boolean noReturn = true;
 
 		while (!tokenizer.getToken().equals("}")) {
 
-			// Get ('constructor' | 'function' | 'method')
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
 				throw new IllegalArgumentException("Not a keyword for a statement");
 			}
 			if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.LET)) {
 				compileLet();
-				noReturn = true;
 			}
 			else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.IF)) {
 				compileIf();
-				noReturn = true;
 			}
 			else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.WHILE)) {
 				compileWhile();
-				noReturn = true;
 			}
 			else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.DO)) {
 				compileDo();
-				noReturn = true;
 			}
 			else if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.RETURN)) {
 				compileReturn();
-				noReturn = false;
 			}
 			else {
+				System.out.println(tokenizer.getToken());
 				throw new IllegalArgumentException("Expected a statement");
 			}
 
 			tokenizer.advance();
 
 		}
-		
-		if (noReturn) {
-			vm.writeReturn();
-		}
-		
+
 		tokenizer.index--;
-		
-		//fw.write("</statements>\n");
 
 		return;
 	}
 
 	public void compileDo() {
-		// Get 'do'
-		if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-			throw new IllegalArgumentException("Not a keyword");
-		}
-		if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.DO)) {
-			throw new IllegalArgumentException("do");
-		}
-
-		//fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
 
 		compileSubroutineCall();
 
@@ -663,10 +541,6 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Expected ';'");
 		}
 
-		//fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-		
-		//fw.write("</doStatement>\n");
-
 		// Pop return value from subroutine call
 		// pop temp 0
 		vm.writePop(VMWriter.Segment.TEMP, 0);
@@ -675,729 +549,650 @@ public class CompilationEngine {
 	}
 
 	public void compileLet() {
-		try {
-			//fw.write("<letStatement>\n");
 
-			// Get 'let'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-				throw new IllegalArgumentException("Not a keyword");
-			}
-			if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.LET)) {
-				throw new IllegalArgumentException("let");
-			}
+		// Get varName
+		tokenizer.advance();
 
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+			throw new IllegalArgumentException("Not an identifier");
+		}
 
-			// Get varName
-			tokenizer.advance();
-			System.out.println(" let varname : " + tokenizer.getToken());
+		String varName = tokenizer.getToken();
+		System.out.println("Let : varName = " + name);
 
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				throw new IllegalArgumentException("Not an identifier");
-			}
+		boolean arrayVar = false;
 
-			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-			
-			// NEW CODE -------------------------------------------------------------------------------------------
-			name = tokenizer.getToken();
-			// If the variable exists in the subroutine scope
-			if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
-				fw.write("SETTING SUBR : " + symbolTable.subroutineMap.get(name).toString());
-			}
-			else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
-				fw.write("SETTING CLASS : " + symbolTable.classMap.get(name).toString());
-			}
-			else {
-				throw new IllegalArgumentException("Identifier could not be found");
-			}
-			
+		// Get ('[' expression ']') or '='
+		tokenizer.advance();
 
-			// Get ('[' expression ']') or '='
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (tokenizer.getToken().equals("[")) {
-				System.out.println("'[' expression ']' happened");
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				compileExpression();
-				
-				// Get ']'
-				tokenizer.advance();
-				
-				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-					throw new IllegalArgumentException("Not a symbol");
-				}
-				if (!tokenizer.symbol().equals("]")) {
-					throw new IllegalArgumentException("Expected ']'");
-				}
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (tokenizer.getToken().equals("[")) {
 
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				tokenizer.advance();
-			}
+			arrayVar = true;
 
-			// Get '='
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("=")) {
-				System.out.println(tokenizer.getToken());
-				throw new IllegalArgumentException("Expected '='");
-			}
+			// Need to push base address onto stack
+			System.out.println("Let : arrayVar base address " + varName);
+			vm.writePush(getSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
 
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
 			compileExpression();
 
-			// Get ';'
+			// Get ']'
 			tokenizer.advance();
-			
+
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
-			if (!tokenizer.symbol().equals(";")) {
-				System.out.println(tokenizer.getToken());
-				throw new IllegalArgumentException("Expected ';'");
+			if (!tokenizer.symbol().equals("]")) {
+				throw new IllegalArgumentException("Expected ']'");
 			}
 
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			fw.write("</letStatement>\n");
-			return;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// Need to add expression to base address
+			vm.writeArithmetic(VMWriter.Command.ADD);
+
+			tokenizer.advance();
+		}
+
+		// Get '='
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals("=")) {
+			throw new IllegalArgumentException("Expected '='");
+		}
+
+		compileExpression();
+
+		// Get ';'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals(";")) {
+			System.out.println(tokenizer.getToken());
+			throw new IllegalArgumentException("Expected ';'");
+		}
+
+
+		// handle arrayVar
+		if (arrayVar) {
+			// expression is at top of stack, need to pop to temp to get at address + offset
+			vm.writePop(VMWriter.Segment.TEMP, 0);
+			// put address + offset in that
+			vm.writePop(VMWriter.Segment.POINTER, 1);
+			// push expression
+			vm.writePush(VMWriter.Segment.TEMP, 0);
+			// pop expression to *that
+			vm.writePop(VMWriter.Segment.THAT, 0);
+		}
+		else {
+			vm.writePop(getSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
+		}
+
+		return;
+	}
+	
+	private VMWriter.Segment getSegment(Symbol.Kind kindOf) {
+		switch (kindOf) {
+			case STATIC:return VMWriter.Segment.STATIC;
+			case FIELD:	return VMWriter.Segment.THIS;
+			case ARG:	return VMWriter.Segment.ARG;
+			case VAR:	return VMWriter.Segment.LOCAL;
+			default:	return VMWriter.Segment.NONE;
 		}
 	}
 	
 	public void compileWhile() {
-		try {
-			fw.write("<whileStatement>\n");
+		
+		String whileStartLabel = "WHILE_" + labelIndex++;
+		String whileEndLabel = "WHILE_END_" + labelIndex++;
+		
+		vm.writeLabel(whileStartLabel);
 
-			// Get 'while'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-				throw new IllegalArgumentException("Not a keyword");
-			}
-			if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.WHILE)) {
-				throw new IllegalArgumentException("while");
-			}
+		// Get '('
+		tokenizer.advance();
 
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-
-			// Get '('
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("(")) {
-				throw new IllegalArgumentException("Expected '('");
-			}
-			
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			compileExpression();
-
-			// Get ')'
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals(")")) {
-				throw new IllegalArgumentException("Expected ')'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
-			// Get '{'
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("{")) {
-				throw new IllegalArgumentException("Expected '{'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			compileStatements();
-
-			// Get '}'
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("}")) {
-				throw new IllegalArgumentException("Expected '}'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			fw.write("</whileStatement>\n");
-			
-			return;
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
 		}
+		if (!tokenizer.symbol().equals("(")) {
+			throw new IllegalArgumentException("Expected '('");
+		}
+
+		compileExpression();
+
+		// Get ')'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals(")")) {
+			throw new IllegalArgumentException("Expected ')'");
+		}
+		
+		// not
+		vm.writeArithmetic(VMWriter.Command.NOT);
+		
+		// if-goto WHILE_END
+		vm.writeIf(whileEndLabel);
+
+		// Get '{'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals("{")) {
+			throw new IllegalArgumentException("Expected '{'");
+		}
+
+		compileStatements();
+
+		// Get '}'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals("}")) {
+			throw new IllegalArgumentException("Expected '}'");
+		}
+		
+		// goto WHILE
+		vm.writeGoto(whileStartLabel);
+		
+		// label while_end
+		vm.writeLabel(whileEndLabel);
+
+		return;
 	}
-	
+
 	public void compileReturn() {
-		try {
-			fw.write("<returnStatement>\n");
 
-			// Get 'return'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-				throw new IllegalArgumentException("Not a keyword");
+		// Check if ';' or expression
+		tokenizer.advance();
+
+		if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			if (tokenizer.symbol().equals(";")) {
+				vm.writePush(VMWriter.Segment.CONST, 0);
+				vm.writeReturn();
+				return;
 			}
-			if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.RETURN)) {
-				throw new IllegalArgumentException("return");
-			}
-
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-
-			// Check if ';' or expression
-			tokenizer.advance();
-			
-			if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				if (tokenizer.symbol().equals(";")) {
-					
-					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-					
-					fw.write("</returnStatement>\n");
-					
-					return;
-				}
-			}
-			
-			tokenizer.index--;
-			
-			compileExpression();
-
-			// Get ';'
-			tokenizer.advance();
-
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals(";")) {
-				throw new IllegalArgumentException("Expected ';'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			fw.write("</returnStatement>\n");
-			
-			return;
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+
+		tokenizer.index--;
+
+		compileExpression();
+
+		// Get ';'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals(";")) {
+			throw new IllegalArgumentException("Expected ';'");
+		}
+		
+		vm.writeReturn();
+
+		return;
 	}
-	
+
 	public void compileIf() {
-		try {
-			fw.write("<ifStatement>\n");
 
-			// Get 'if'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-				throw new IllegalArgumentException("Not a keyword");
-			}
-			if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.IF)) {
-				System.out.println(tokenizer.keyWord());
-				throw new IllegalArgumentException("if");
-			}
+		// Get '('
+		tokenizer.advance();
 
-			fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-
-			// Get '('
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				System.out.println(tokenizer.getToken());
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("(")) {
-				throw new IllegalArgumentException("Expected '('");
-			}
-			
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			compileExpression();
-
-			// Get ')'
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals(")")) {
-				throw new IllegalArgumentException("Expected ')'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
-			// Get '{'
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("{")) {
-				throw new IllegalArgumentException("Expected '{'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			compileStatements();
-
-			// Get '}'
-			tokenizer.advance();
-			
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("}")) {
-				throw new IllegalArgumentException("Expected '}'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			
-			// Check for else
-			tokenizer.advance();
-			
-			if (tokenizer.keyWord().equals(JackTokenizer.KeyWord.ELSE)) {
-				compileElse();
-			}
-			else {
-				tokenizer.index--;
-			}
-			
-			fw.write("</ifStatement>\n");
-			return;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			System.out.println(tokenizer.getToken());
+			throw new IllegalArgumentException("Not a symbol");
 		}
+		if (!tokenizer.symbol().equals("(")) {
+			throw new IllegalArgumentException("Expected '('");
+		}
+
+		compileExpression();
+
+		// Get ')'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals(")")) {
+			throw new IllegalArgumentException("Expected ')'");
+		}
+
+		//not
+		vm.writeArithmetic(VMWriter.Command.NOT);
+
+		// if goto if_False_label
+		String ifFalseLabel = "IF_FALSE_" + labelIndex++;
+
+		vm.writeIf(ifFalseLabel);
+
+		// Get '{'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals("{")) {
+			throw new IllegalArgumentException("Expected '{'");
+		}
+
+		compileStatements();
+
+		// Get '}'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals("}")) {
+			throw new IllegalArgumentException("Expected '}'");
+		}
+
+		// goto if end
+		String ifEndLabel = "IF_END_" + labelIndex++;
+
+		vm.writeGoto(ifEndLabel);
+
+		// label if false
+		vm.writeLabel(ifFalseLabel);
+
+		// Check for else
+		tokenizer.advance();
+
+		if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && tokenizer.keyWord().equals(JackTokenizer.KeyWord.ELSE)) {
+			compileElse();
+		}
+		else {
+			tokenizer.index--;
+		}
+
+		// label if end
+		vm.writeLabel(ifEndLabel);
+
+		return;
 	}
 	
 	public void compileElse() {
-		try {
-			fw.write("<elseStatement>\n");
 
-			// Get 'else'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD)) {
-				throw new IllegalArgumentException("Not a keyword");
-			}
-			if (!tokenizer.keyWord().equals(JackTokenizer.KeyWord.ELSE)) {
-				throw new IllegalArgumentException("else");
-			}
+		// Get '{'
+		tokenizer.advance();
 
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
-			// Get '{'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("{")) {
-				throw new IllegalArgumentException("Expected '{'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-			
-			compileStatements();
-
-			// Get '}'
-			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				throw new IllegalArgumentException("Not a symbol");
-			}
-			if (!tokenizer.symbol().equals("}")) {
-				throw new IllegalArgumentException("Expected '}'");
-			}
-
-			fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-
-			fw.write("</elseStatement>\n");
-			return;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
 		}
+		if (!tokenizer.symbol().equals("{")) {
+			throw new IllegalArgumentException("Expected '{'");
+		}
+
+		compileStatements();
+
+		// Get '}'
+		tokenizer.advance();
+		
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		if (!tokenizer.symbol().equals("}")) {
+			throw new IllegalArgumentException("Expected '}'");
+		}
+
+		return;
 	}
 	
 	public void compileExpression() {
-		try {
-			fw.write("<expression>\n");
-			
-			compileTerm();
-			
-			// Get (op term)*
-			tokenizer.advance();
-			
-			while (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL) && JackTokenizer.opSet.contains(tokenizer.symbol())) {
-				
-				String text = tokenizer.symbol();
-				
-				if (text.equals("<")) {
-					text = "&lt;";
-				}
-				else if (text.equals(">")) {
-					text = "&gt;";
-				}
-				else if (text.equals("&")) {
-					text = "&amp;";
-				}
-				
-				fw.write("<symbol> " + text + " </symbol>\n");
-				
-				compileTerm();
-				
-				tokenizer.advance();
-			}
-			
-			tokenizer.index--;
-			
-			fw.write("</expression>\n");
 
-			return;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		compileTerm();
+
+		// Get (op term)*
+		tokenizer.advance();
+
+		boolean isCall = false;
+
+		while (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL) && JackTokenizer.opSet.contains(tokenizer.symbol())) {
+
+			VMWriter.Command command = null;
+			String call = "";
+
+			switch(tokenizer.symbol()){
+				case "+": command = VMWriter.Command.ADD;break;
+				case "-": command = VMWriter.Command.SUB;break;
+				case "=": command = VMWriter.Command.EQ;break;
+				case ">": command = VMWriter.Command.GT;break;
+				case "<": command = VMWriter.Command.LT;break;
+				case "&": command = VMWriter.Command.AND;break;
+				case "|": command = VMWriter.Command.OR;break;
+				case "*": call = "Math.multiply"; isCall = true; break;
+				case "/": call = "Math.divide"; isCall = true; break;
+			}
+
+			compileTerm();
+
+			if (isCall) {
+				vm.writeCall(call, 2);
+				isCall = false;
+			}
+			else {
+				vm.writeArithmetic(command);
+			}
+
+			tokenizer.advance();
 		}
+
+		tokenizer.index--;
+
+		return;
 	}
 	
 	private void compileSubroutineCall() {
-		try {
-			// Get 'subroutineName' / 'className' / 'varName'
+
+		// Get 'subroutineName' / 'className' / 'varName'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+			throw new IllegalArgumentException("Not an identifier");
+		}
+
+		name = tokenizer.getToken();
+
+		int nArgs = 0;
+
+		// Get '(' or '.'
+		tokenizer.advance();
+
+		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			throw new IllegalArgumentException("Not a symbol");
+		}
+		// subroutineName ( expressionList )
+		if (tokenizer.symbol().equals("(")) {
+
+			// push this
+			vm.writePush(VMWriter.Segment.POINTER, 0);
+
+			// process expression list and get number of expressions + 1 for this
+			nArgs = compileExpressionList() + 1;
+
+			// call currentClass.subroutineName numberOfExpressions
+			vm.writeCall(className + "." + name, nArgs);
+
+			// Get ')'
 			tokenizer.advance();
+
+			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				throw new IllegalArgumentException("Not a symbol");
+			}
+			if (!tokenizer.symbol().equals(")")) {
+				throw new IllegalArgumentException("Expected ')'");
+			}
+		}
+		// (className | varName).subroutineName 
+		else if (tokenizer.symbol().equals(".")) {
 			
+			String type = symbolTable.typeOf(name);
+
+			// Get 'subroutineName'
+			tokenizer.advance();
+
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
 				throw new IllegalArgumentException("Not an identifier");
 			}
 
-			fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
+			String subroutineName = tokenizer.identifier();
 			
-			// NEW CODE -------------------------------------------------------------------------------------------
-			name = tokenizer.getToken();
-			// If the variable exists in the subroutine scope
-			if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
-				fw.write("Compile subroutine (subr) : " + symbolTable.subroutineMap.get(name).toString());
+			if (type.equals("int") || type.equals("boolean") || type.equals("char") || type.equals("void")) {
+				throw new IllegalArgumentException("Cannot make subroutine call on " + type);
 			}
-			else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
-				fw.write("Compile subroutine (class) : " + symbolTable.classMap.get(name).toString());
+			// className
+			else if (type.equals("")) {
+				name = name + "." + subroutineName;
 			}
+			// varName
 			else {
-				fw.write("Compile subroutine (unknown) : " + name);
+				// push segment offset
+				System.out.println("varName : push segment offset : push +_kindOf : " + name );
+				vm.writePush(getSegment(symbolTable.kindOf(name)), symbolTable.indexOf(name));
+				nArgs = 1;
+				// change name to classOfVar.subroutineName
+				name = symbolTable.typeOf(name) + "." + subroutineName;	
 			}
-			
-			// Get '(' or '.'
+
+			// Get '('
 			tokenizer.advance();
-			
+
 			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 				throw new IllegalArgumentException("Not a symbol");
 			}
-			if (tokenizer.symbol().equals("(")) {
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				compileExpressionList();
-				
-				// Get ')'
-				tokenizer.advance();
-
-				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-					throw new IllegalArgumentException("Not a symbol");
-				}
-				if (!tokenizer.symbol().equals(")")) {
-					throw new IllegalArgumentException("Expected ')'");
-				}
-
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
+			if (!tokenizer.symbol().equals("(")) {
+				throw new IllegalArgumentException("Expected '('");
 			}
-			else if (tokenizer.symbol().equals(".")) {
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				// Get 'subroutineName'
-				tokenizer.advance();
-				
-				if (!tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-					throw new IllegalArgumentException("Not an identifier");
-				}
 
-				fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-				
-				// Get '('
-				tokenizer.advance();
+			// should be + 1 for varName and + 0 for className
+			nArgs = compileExpressionList() + nArgs;
 
-				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-					throw new IllegalArgumentException("Not a symbol");
-				}
-				if (!tokenizer.symbol().equals("(")) {
-					throw new IllegalArgumentException("Expected '('");
-				}
+			// Get ')'
+			tokenizer.advance();
 
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				compileExpressionList();
-				
-				// Get ')'
-				tokenizer.advance();
-
-				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-					throw new IllegalArgumentException("Not a symbol");
-				}
-				if (!tokenizer.symbol().equals(")")) {
-					throw new IllegalArgumentException("Expected ')'");
-				}
-
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-			} 
-			else {
-				throw new IllegalArgumentException("Expected '(' or '.'");
+			if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				throw new IllegalArgumentException("Not a symbol");
 			}
-			
-			return;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if (!tokenizer.symbol().equals(")")) {
+				throw new IllegalArgumentException("Expected ')'");
+			}
+
+			// call (className | varName).subroutineName numberOfExpressions
+			System.out.println("writeCall : name " + name + " nArgs : " + nArgs);
+			vm.writeCall(name, nArgs);
+
+		} 
+		else {
+			throw new IllegalArgumentException("Expected '(' or '.'");
 		}
-		
+
+		return;
 	}
 
 	public void compileTerm() {
-		try {
-			fw.write("<term>\n");
-			
+
+		tokenizer.advance();
+
+		// integerConstant
+		if (tokenizer.getType().equals(JackTokenizer.TokenType.INT_CONST)) {
+			// push constant intConst
+			System.out.println("Term : push constant int " + tokenizer.getToken());
+			vm.writePush(VMWriter.Segment.CONST, Integer.parseInt(tokenizer.getToken()));
+		}
+		// stringConstant
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.STRING_CONST)) {
+			String string = tokenizer.getToken();
+			int length = string.length();
+			// push string length
+			System.out.println("Term : push string length " + string);
+			vm.writePush(VMWriter.Segment.CONST, length);
+			// call String.new 1
+			vm.writeCall("String.new", 1);
+
+			for (int i = 0; i < length; i++) {
+				// get ascii value of each char
+				int ascii = (int) string.charAt(i);
+				// push ascii
+				System.out.println("Term : push ascii value " + ascii);
+				vm.writePush(VMWriter.Segment.CONST, ascii);
+				// call String.appendChar 2
+				vm.writeCall("String.appendChar", 2);
+			}
+		}
+		// keywordConstant TRUE
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.TRUE))) {
+			// push true (not 0)
+			System.out.println("Term : push true " + tokenizer.getToken());
+			vm.writePush(VMWriter.Segment.CONST, 0);
+			vm.writeArithmetic(VMWriter.Command.NOT);
+		}
+		// keywordConstant FALSE
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.FALSE))) {
+			// push FALSE (0)
+			System.out.println("Term : push false " + tokenizer.getToken());
+			vm.writePush(VMWriter.Segment.CONST, 0);
+		}
+		// keywordConstant NULL
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.NULL))) {
+			// push NULL (0)
+			System.out.println("Term : push null " + tokenizer.getToken());
+			vm.writePush(VMWriter.Segment.CONST, 0);
+		}
+		// keywordConstant THIS
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.THIS))) {
+			// push THIS
+			System.out.println("Term : push this " + tokenizer.getToken());
+			vm.writePush(VMWriter.Segment.POINTER, 0);
+		}
+		// Could be varName | varName '[' expression ']' | subroutineCall
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
+
+			String identifier = tokenizer.getToken();
+
+			// Check for following '[' | '('
 			tokenizer.advance();
-			System.out.println("Compile term called on : " + tokenizer.getToken());
-			
-			// integerConstant
-			if (tokenizer.getType().equals(JackTokenizer.TokenType.INT_CONST)) {
-				fw.write("<integerConstant> " + tokenizer.intVal() + " </integerConstant>\n");
-			}
-			
-			// stringConstant
-			else if (tokenizer.getType().equals(JackTokenizer.TokenType.STRING_CONST)) {
-				fw.write("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>\n");
-			}
-			
-			// keywordConstant
-			else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && 
-						(tokenizer.keyWord().equals(JackTokenizer.KeyWord.TRUE) || 
-							tokenizer.keyWord().equals(JackTokenizer.KeyWord.FALSE) ||
-							tokenizer.keyWord().equals(JackTokenizer.KeyWord.NULL) ||
-							tokenizer.keyWord().equals(JackTokenizer.KeyWord.THIS))) {
 
-				fw.write("<keyword> " + tokenizer.getToken() + " </keyword>\n");
-			}
-			
-			// Could be varName | varName '[' expression ']' | subroutineCall
-			else if (tokenizer.getType().equals(JackTokenizer.TokenType.IDENTIFIER)) {
-				
-				// Check for following '[' | '('
-				tokenizer.advance();
-				System.out.println("Initial else if entered : " + tokenizer.getToken() + " should be ;");
+			if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+				// varName '[' expression ']'  
+				if (tokenizer.symbol().equals("[")) {
 
-				if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-					// varName '[' expression ']'  
-					if (tokenizer.symbol().equals("[")) {
-						
-						// Backtrack back to before varName
-						tokenizer.index = tokenizer.index - 2;
-						
-						tokenizer.advance();
-						System.out.println("Entered varName '[' expression ']' : " + tokenizer.getToken());
-						
-						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-						
-						// NEW CODE -------------------------------------------------------------------------------------------
-						name = tokenizer.getToken();
-						// If the variable exists in the subroutine scope
-						if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
-							fw.write("Compile term (subr) : " + symbolTable.subroutineMap.get(name).toString());
-						}
-						else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
-							fw.write("Compile term (class) : " + symbolTable.classMap.get(name).toString());
-						}
-						else {
-							throw new IllegalArgumentException("CompileTerm : Identifier could not be found");
-						}
-						
-						// Get '['
-						tokenizer.advance();
-						
-						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-						
-						compileExpression();
-						
-						// Get ']'
-						tokenizer.advance();
+					System.out.println("Term : varName [ expression ] " + identifier);
+					vm.writePush(getSegment(symbolTable.kindOf(identifier)), symbolTable.indexOf(identifier));
 
-						if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-							throw new IllegalArgumentException("Not a symbol");
-						}
-						if (!tokenizer.symbol().equals("]")) {
-							throw new IllegalArgumentException("Expected ']'");
-						}
-
-						fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-						
-					}
-					// subroutineCall == subroutineName '(' || (className | varName) '.'
-					else if (tokenizer.symbol().equals("(") || tokenizer.symbol().equals(".")) {
-						tokenizer.index = tokenizer.index - 2;
-						System.out.println("Should be identifier for subroutine : " + tokenizer.getToken());
-						
-						compileSubroutineCall();
-						
-					}
-					// varName if followed by symbol
-					else {
-						tokenizer.index = tokenizer.index - 2;
-						
-						tokenizer.advance();
-						System.out.println("Identifier then symbol[^[(] : " + tokenizer.getToken());
-						
-						fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-						
-						// NEW CODE -------------------------------------------------------------------------------------------
-						name = tokenizer.getToken();
-						// If the variable exists in the subroutine scope
-						if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
-							fw.write("Compile term (subr) : " + symbolTable.subroutineMap.get(name).toString());
-						}
-						else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
-							fw.write("Compile term (class) : " + symbolTable.classMap.get(name).toString());
-						}
-						else {
-							throw new IllegalArgumentException("CompileTerm (varName) : Identifier could not be found");
-						}
-					}
-				}
-				// varName if followed by non-symbol
-				else {
-					tokenizer.index = tokenizer.index - 2;
-					
-					tokenizer.advance();
-					System.out.println("Identifier then nonSymbol : " + tokenizer.getToken());
-					
-					fw.write("<identifier> " + tokenizer.identifier() + " </identifier>\n");
-					
-					// NEW CODE -------------------------------------------------------------------------------------------
-					name = tokenizer.getToken();
-					// If the variable exists in the subroutine scope
-					if (!(symbolTable.subroutineMap.get(tokenizer.identifier()) == null)) {
-						fw.write("Compile term (subr) : " + symbolTable.subroutineMap.get(name).toString());
-					}
-					else if (!(symbolTable.classMap.get(tokenizer.identifier()) == null)) {
-						fw.write("Compile term (class) : " + symbolTable.classMap.get(name).toString());
-					}
-					else {
-						throw new IllegalArgumentException("CompileTerm (varName) : Identifier could not be found");
-					}
-				}
-			}
-			// Get '(' expression ')' | unaryOp term
-			else if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				// '(' expression ')' 
-				if (tokenizer.symbol().equals("(")) {
-					System.out.println("'(' expression ')' : " + tokenizer.getToken());
-					// Get '('
-					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-					
 					compileExpression();
-					
-					// Get ')'
+
+					// Get ']'
 					tokenizer.advance();
 
 					if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
 						throw new IllegalArgumentException("Not a symbol");
 					}
-					if (!tokenizer.symbol().equals(")")) {
-						throw new IllegalArgumentException("Expected ')'");
+					if (!tokenizer.symbol().equals("]")) {
+						throw new IllegalArgumentException("Expected ']'");
 					}
-
-					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				}
-				// unaryOp term
-				else {
-					System.out.println("unaryOp term : " + tokenizer.getToken());
-					if (!tokenizer.symbol().equals("-") && !tokenizer.symbol().equals("~")) {
-						tokenizer.index--;
-						tokenizer.index--;
-						tokenizer.advance();
-						System.out.println("Previous token : " + tokenizer.getToken());
-						
-						throw new IllegalArgumentException("Expected '-' or '~'");
-					}
-
-					fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
 					
-					compileTerm();
+					vm.writeArithmetic(VMWriter.Command.ADD);
+					
+					vm.writePop(VMWriter.Segment.POINTER, 1);
+					
+					vm.writePush(VMWriter.Segment.THAT, 0);
+				}
+				// subroutineCall == subroutineName '(' || (className | varName) '.'
+				else if (tokenizer.symbol().equals("(") || tokenizer.symbol().equals(".")) {
+					tokenizer.index = tokenizer.index - 2;
+
+					compileSubroutineCall();
+				}
+				// varName if followed by symbol
+				else {
+					tokenizer.index--;
+
+					System.out.println("Term : varName symbol " + identifier);
+					vm.writePush(getSegment(symbolTable.kindOf(identifier)), symbolTable.indexOf(identifier));
 				}
 			}
+			// varName if followed by non-symbol
 			else {
-				throw new IllegalArgumentException("Expected a term");
+				tokenizer.index--;
+
+				System.out.println("Term : varName non-symbol " + identifier);
+				vm.writePush(getSegment(symbolTable.kindOf(identifier)), symbolTable.indexOf(identifier));
 			}
-			
-			fw.write("</term>\n");
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		}
+		// Get '(' expression ')' | unaryOp term
+		else if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			// '(' expression ')' 
+			if (tokenizer.symbol().equals("(")) {
+
+				compileExpression();
+
+				// Get ')'
+				tokenizer.advance();
+
+				if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+					throw new IllegalArgumentException("Not a symbol");
+				}
+				if (!tokenizer.symbol().equals(")")) {
+					throw new IllegalArgumentException("Expected ')'");
+				}
+			}
+			// unaryOp term
+			else {
+				if (!tokenizer.symbol().equals("-") && !tokenizer.symbol().equals("~")) {
+					System.out.println("token : " + tokenizer.getToken());
+					throw new IllegalArgumentException("Expected '-' or '~'");
+				}
+
+				String op = tokenizer.symbol();
+
+				compileTerm();
+
+				if (op.equals("-")) {
+					vm.writeArithmetic(VMWriter.Command.NEG);
+				}
+				else {
+					vm.writeArithmetic(VMWriter.Command.NOT);
+				}
+			}
+		}
+		else {
+			throw new IllegalArgumentException("Expected a term");
 		}
 	}
 	
-	public void compileExpressionList() {
-		try {
-			fw.write("<expressionList>\n");
-			
-			// Check for ')'
-			tokenizer.advance();
-			
-			if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-				if (tokenizer.symbol().equals(")")) {
-					fw.write("</expressionList>\n");
-					tokenizer.index--;
-					System.out.println("Empty expression list");
-					return;
-				}
+	public int compileExpressionList() {
+		
+		int nArgs = 0;
+
+		// Check for ')'
+		tokenizer.advance();
+
+		if (tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
+			if (tokenizer.symbol().equals(")")) {
+				tokenizer.index--;
+				return nArgs;
 			}
-			
-			tokenizer.index--;
+		}
+
+		tokenizer.index--;
+		
+		nArgs++;
+
+		compileExpression();
+
+		// Get (',' expression)*
+		tokenizer.advance();
+
+		while (tokenizer.getToken().equals(",")) {
+
+			nArgs++;
 			
 			compileExpression();
 
-			// Get (',' expression)*
 			tokenizer.advance();
-
-			while (tokenizer.getToken().equals(",")) {
-
-				fw.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
-				
-				compileExpression();
-
-				tokenizer.advance();
-			}
-			
-			tokenizer.index--;
-			
-			fw.write("</expressionList>\n");
-			
-			return;
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+
+		tokenizer.index--;
+
+		return nArgs;
 	}
+	
+    private String currentFunction(){
+
+        if (className.length() != 0 && subrName.length() !=0){
+            return className + "." + subrName;
+        }
+        
+        return "";
+    }
 }

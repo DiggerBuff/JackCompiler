@@ -50,7 +50,6 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Not a symbol");
 		}
 		if (!tokenizer.symbol().equals("{")) {
-			System.out.println(tokenizer.getToken());
 			throw new IllegalArgumentException("Expected '{'");
 		}
 
@@ -514,7 +513,6 @@ public class CompilationEngine {
 				compileReturn();
 			}
 			else {
-				System.out.println(tokenizer.getToken());
 				throw new IllegalArgumentException("Expected a statement");
 			}
 
@@ -558,7 +556,6 @@ public class CompilationEngine {
 		}
 
 		String varName = tokenizer.getToken();
-		System.out.println("Let : varName = " + name);
 
 		boolean arrayVar = false;
 
@@ -573,7 +570,6 @@ public class CompilationEngine {
 			arrayVar = true;
 
 			// Need to push base address onto stack
-			System.out.println("Let : arrayVar base address " + varName);
 			vm.writePush(getSegment(symbolTable.kindOf(varName)), symbolTable.indexOf(varName));
 
 			compileExpression();
@@ -611,7 +607,6 @@ public class CompilationEngine {
 			throw new IllegalArgumentException("Not a symbol");
 		}
 		if (!tokenizer.symbol().equals(";")) {
-			System.out.println(tokenizer.getToken());
 			throw new IllegalArgumentException("Expected ';'");
 		}
 
@@ -748,7 +743,6 @@ public class CompilationEngine {
 		tokenizer.advance();
 
 		if (!tokenizer.getType().equals(JackTokenizer.TokenType.SYMBOL)) {
-			System.out.println(tokenizer.getToken());
 			throw new IllegalArgumentException("Not a symbol");
 		}
 		if (!tokenizer.symbol().equals("(")) {
@@ -957,7 +951,6 @@ public class CompilationEngine {
 			// varName
 			else {
 				// push segment offset
-				System.out.println("varName : push segment offset : push +_kindOf : " + name );
 				vm.writePush(getSegment(symbolTable.kindOf(name)), symbolTable.indexOf(name));
 				nArgs = 1;
 				// change name to classOfVar.subroutineName
@@ -988,7 +981,6 @@ public class CompilationEngine {
 			}
 
 			// call (className | varName).subroutineName numberOfExpressions
-			System.out.println("writeCall : name " + name + " nArgs : " + nArgs);
 			vm.writeCall(name, nArgs);
 
 		} 
@@ -1006,7 +998,6 @@ public class CompilationEngine {
 		// integerConstant
 		if (tokenizer.getType().equals(JackTokenizer.TokenType.INT_CONST)) {
 			// push constant intConst
-			System.out.println("Term : push constant int " + tokenizer.getToken());
 			vm.writePush(VMWriter.Segment.CONST, Integer.parseInt(tokenizer.getToken()));
 		}
 		// stringConstant
@@ -1014,16 +1005,14 @@ public class CompilationEngine {
 			String string = tokenizer.getToken();
 			int length = string.length();
 			// push string length
-			System.out.println("Term : push string length " + string);
 			vm.writePush(VMWriter.Segment.CONST, length);
 			// call String.new 1
 			vm.writeCall("String.new", 1);
 
-			for (int i = 0; i < length; i++) {
+			for (int i = 1; i < length - 1; i++) {
 				// get ascii value of each char
 				int ascii = (int) string.charAt(i);
 				// push ascii
-				System.out.println("Term : push ascii value " + ascii);
 				vm.writePush(VMWriter.Segment.CONST, ascii);
 				// call String.appendChar 2
 				vm.writeCall("String.appendChar", 2);
@@ -1032,26 +1021,22 @@ public class CompilationEngine {
 		// keywordConstant TRUE
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.TRUE))) {
 			// push true (not 0)
-			System.out.println("Term : push true " + tokenizer.getToken());
 			vm.writePush(VMWriter.Segment.CONST, 0);
 			vm.writeArithmetic(VMWriter.Command.NOT);
 		}
 		// keywordConstant FALSE
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.FALSE))) {
 			// push FALSE (0)
-			System.out.println("Term : push false " + tokenizer.getToken());
 			vm.writePush(VMWriter.Segment.CONST, 0);
 		}
 		// keywordConstant NULL
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.NULL))) {
 			// push NULL (0)
-			System.out.println("Term : push null " + tokenizer.getToken());
 			vm.writePush(VMWriter.Segment.CONST, 0);
 		}
 		// keywordConstant THIS
 		else if (tokenizer.getType().equals(JackTokenizer.TokenType.KEYWORD) && (tokenizer.keyWord().equals(JackTokenizer.KeyWord.THIS))) {
 			// push THIS
-			System.out.println("Term : push this " + tokenizer.getToken());
 			vm.writePush(VMWriter.Segment.POINTER, 0);
 		}
 		// Could be varName | varName '[' expression ']' | subroutineCall
@@ -1066,7 +1051,6 @@ public class CompilationEngine {
 				// varName '[' expression ']'  
 				if (tokenizer.symbol().equals("[")) {
 
-					System.out.println("Term : varName [ expression ] " + identifier);
 					vm.writePush(getSegment(symbolTable.kindOf(identifier)), symbolTable.indexOf(identifier));
 
 					compileExpression();
@@ -1097,7 +1081,6 @@ public class CompilationEngine {
 				else {
 					tokenizer.index--;
 
-					System.out.println("Term : varName symbol " + identifier);
 					vm.writePush(getSegment(symbolTable.kindOf(identifier)), symbolTable.indexOf(identifier));
 				}
 			}
@@ -1105,7 +1088,6 @@ public class CompilationEngine {
 			else {
 				tokenizer.index--;
 
-				System.out.println("Term : varName non-symbol " + identifier);
 				vm.writePush(getSegment(symbolTable.kindOf(identifier)), symbolTable.indexOf(identifier));
 			}
 		}
@@ -1129,7 +1111,6 @@ public class CompilationEngine {
 			// unaryOp term
 			else {
 				if (!tokenizer.symbol().equals("-") && !tokenizer.symbol().equals("~")) {
-					System.out.println("token : " + tokenizer.getToken());
 					throw new IllegalArgumentException("Expected '-' or '~'");
 				}
 

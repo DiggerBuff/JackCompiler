@@ -73,7 +73,6 @@ public class SymbolTable {
 			return subroutineMap.get(name).getKind();
 		}
 		else {
-			System.out.println("kind of " + name + " is none");
 			return Symbol.Kind.NONE;
 		}
 	}

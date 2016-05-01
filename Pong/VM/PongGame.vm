@@ -37,8 +37,6 @@ call Output.moveCursor 2
 pop temp 0
 push constant 10
 call String.new 1
-push constant 34
-call String.appendChar 2
 push constant 83
 call String.appendChar 2
 push constant 99
@@ -54,8 +52,6 @@ call String.appendChar 2
 push constant 32
 call String.appendChar 2
 push constant 48
-call String.appendChar 2
-push constant 34
 call String.appendChar 2
 call Output.printString 1
 pop temp 0
@@ -184,8 +180,6 @@ call Output.moveCursor 2
 pop temp 0
 push constant 11
 call String.new 1
-push constant 34
-call String.appendChar 2
 push constant 71
 call String.appendChar 2
 push constant 97
@@ -203,8 +197,6 @@ call String.appendChar 2
 push constant 101
 call String.appendChar 2
 push constant 114
-call String.appendChar 2
-push constant 34
 call String.appendChar 2
 call Output.printString 1
 pop temp 0

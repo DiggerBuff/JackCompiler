@@ -237,8 +237,8 @@ public class JackTokenizer {
 		intPattern = "\\d+";
 		stringPattern = "\"[^\"\n]*\"";
 		
-		patterns = Pattern.compile(keyWordPattern + symbolPattern + "|" + 
-				identifierPattern + "|" + intPattern + "|" + stringPattern);
+		patterns = Pattern.compile(identifierPattern + "|" + keyWordPattern + symbolPattern + "|" + 
+				 intPattern + "|" + stringPattern);
 	}
 
 	public String getToken() {
